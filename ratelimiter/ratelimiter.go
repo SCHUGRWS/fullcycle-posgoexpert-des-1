@@ -98,6 +98,7 @@ func getLimitForKey(key string, isToken bool) (int, int, int) {
 
 func (rl *RateLimiter) Limit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		token := r.Header.Get("API_KEY")
 		var key string
 		var isToken bool
@@ -116,7 +117,7 @@ func (rl *RateLimiter) Limit(next http.Handler) http.Handler {
 			isToken = false
 		}
 
-		blocked, err := rl.store.IsBlocked(key)
+		blocked, err := rl.store.IsBlocked(ctx, key)
 		if blocked {
 			http.Error(w, "You have reached the maximum number of requests allowed within a certain time frame (Is Blocked)", http.StatusTooManyRequests)
 			return
@@ -124,14 +125,14 @@ func (rl *RateLimiter) Limit(next http.Handler) http.Handler {
 
 		limit, expirationTime, blockDuration := getLimitForKey(key, isToken)
 
-		count, err := rl.store.Get(key)
+		count, err := rl.store.Get(ctx, key)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
 		if count >= limit {
-			err := rl.store.Block(key, time.Duration(blockDuration))
+			err := rl.store.Block(ctx, key, time.Duration(blockDuration))
 			if err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
@@ -140,7 +141,7 @@ func (rl *RateLimiter) Limit(next http.Handler) http.Handler {
 			return
 		}
 
-		_, err = rl.store.Increment(key, time.Duration(expirationTime))
+		_, err = rl.store.Increment(ctx, key, time.Duration(expirationTime))
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
