@@ -1,0 +1,13 @@
+rate_limit:
+  ips:
+    - ip: "192.168.1.1"
+      limit: 10
+    - ip: "192.168.1.2"
+      limit: 15
+    - ip: "172.25.0.1"
+      limit: 1
+  tokens:
+    - token: "token123"
+      limit: 5
+    - token: "tokenABC"
+      limit: 25
